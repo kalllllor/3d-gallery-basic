@@ -392,12 +392,6 @@ function init() {
     );
     document.addEventListener("keyup", onKeyUp);
 
-    raycaster = new Raycaster(
-      new Vector3(),
-      new Vector3(0, -1, 0),
-      0,
-      10
-    );
     // Full screen
     window.addEventListener(
       "dblclick",
@@ -425,7 +419,6 @@ function init() {
 
   // ===== 📈 STATS & CLOCK =====
   {
-    clock = new Clock();
     stats = Stats();
     document.body.appendChild(stats.dom);
   }
