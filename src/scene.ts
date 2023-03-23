@@ -3,9 +3,7 @@ import {
   AmbientLight,
   AxesHelper,
   Clock,
-  GridHelper,
   Mesh,
-  PCFSoftShadowMap,
   PerspectiveCamera,
   PointLight,
   PointLightHelper,
@@ -13,18 +11,24 @@ import {
   TextureLoader,
   WebGLRenderer,
   MeshBasicMaterial,
+  MeshPhysicalMaterial,
+  EquirectangularReflectionMapping,
   sRGBEncoding,
+  Vector2,
+  Vector3,
+  RepeatWrapping,
+  Color,
+  Raycaster,
 } from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import Stats from "three/examples/jsm/libs/stats.module";
-import * as animations from "./animations";
 import { toggleFullScreen } from "./helpers/fullscreen";
 import { resizeRendererToDisplaySize } from "./helpers/responsiveness";
 
 import "./style.css";
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { FirstPersonControls } from "three/examples/jsm/controls/FirstPersonControls.js";
+import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 
 const CANVAS_ID = "scene";
 
@@ -34,9 +38,9 @@ let scene: Scene;
 
 let ambientLight: AmbientLight;
 let pointLight: PointLight;
-let cube: Mesh;
+let secondPointLight: PointLight;
 let camera: PerspectiveCamera;
-let cameraControls: OrbitControls;
+let cameraControls: PointerLockControls;
 let axesHelper: AxesHelper;
 let pointLightHelper: PointLightHelper;
 let clock: Clock;
@@ -44,9 +48,39 @@ let stats: Stats;
 let gui: GUI;
 let gltfLoader: GLTFLoader;
 let textureLoader: TextureLoader;
-let firstPersonControls: FirstPersonControls;
 
-const animation = { enabled: false, play: true };
+let raycaster: Raycaster;
+
+let moveForward: boolean = false;
+let moveBackward: boolean = false;
+let moveLeft: boolean = false;
+let moveRight: boolean = false;
+let canJump: boolean = false;
+
+let prevTime = performance.now();
+const velocity: Vector3 = new Vector3();
+const direction: Vector3 = new Vector3();
+
+const options = {
+  enableSwoopingCamera: false,
+  enableRotation: false,
+  color: 0xffffff,
+  metalness: 0,
+  roughness: 0.2,
+  transmission: 1,
+  ior: 1.5,
+  reflectivity: 0.5,
+  thickness: 2.5,
+  envMapIntensity: 1.5,
+  clearcoat: 1,
+  clearcoatRoughness: 0.1,
+  normalScale: 0.3,
+  clearcoatNormalScale: 0.2,
+  normalRepeat: 5,
+  bloomThreshold: 0.85,
+  bloomStrength: 0.35,
+  bloomRadius: 0.33,
+};
 
 init();
 animate();
@@ -65,8 +99,7 @@ function init() {
     renderer.setPixelRatio(
       Math.min(window.devicePixelRatio, 2)
     );
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = PCFSoftShadowMap;
+
     scene = new Scene();
   }
 
@@ -75,41 +108,68 @@ function init() {
     gltfLoader = new GLTFLoader();
     textureLoader = new TextureLoader();
 
+    const hdrEquirect = new RGBELoader().load(
+      "/texture/empty_warehouse_01_2k.hdr",
+      () => {
+        hdrEquirect.mapping =
+          EquirectangularReflectionMapping;
+      }
+    );
+
+    const normalMapTexture = textureLoader.load(
+      "/texture/normal.jpg"
+    );
+    normalMapTexture.wrapS = RepeatWrapping;
+    normalMapTexture.wrapT = RepeatWrapping;
+    normalMapTexture.repeat.set(
+      options.normalRepeat,
+      options.normalRepeat
+    );
+
     // MATERIALS
     const baseWallsTexture = textureLoader.load(
       "/texture/baked/sciana-infinity-01-biala.png"
     );
-    baseWallsTexture.encoding = sRGBEncoding;
+
     baseWallsTexture.flipY = false;
     const baseWallsMaterial =
       new MeshBasicMaterial({
         map: baseWallsTexture,
       });
 
-    const blueDogTexture = textureLoader.load(
-      "/texture/baked/blue-dog.png"
-    );
-    blueDogTexture.encoding = sRGBEncoding;
-    blueDogTexture.flipY = false;
-    const blueDogMaterial = new MeshBasicMaterial(
-      {
-        map: blueDogTexture,
-      }
-    );
+    const blackWallMaterial =
+      new MeshPhysicalMaterial({
+        color: 0xffffff,
+        metalness: options.metalness,
+        roughness: options.roughness,
+        transmission: options.transmission,
+        ior: options.ior,
+        reflectivity: options.reflectivity,
+        envMap: hdrEquirect,
+        envMapIntensity: options.envMapIntensity,
+        clearcoat: options.clearcoat,
+        clearcoatRoughness:
+          options.clearcoatRoughness,
+        normalScale: new Vector2(
+          options.normalScale
+        ),
+        normalMap: normalMapTexture,
+        clearcoatNormalMap: normalMapTexture,
+        clearcoatNormalScale: new Vector2(
+          options.clearcoatNormalScale
+        ),
+      });
 
     gltfLoader.load(
       "/model/galeria_nowa.glb",
       (gltf) => {
         gltf.scene.traverse((child) => {
-          console.log(child.name);
           child.name === "UCX_Cube129" &&
             (child.material = baseWallsMaterial);
-
-          child.name === "default2" &&
-            (child.material = blueDogMaterial);
+          child.name === "UCX_Cube125" &&
+            (child.material = blackWallMaterial);
         });
         scene.add(gltf.scene);
-        console.log(gltf.scene);
       },
       (xhr) => {
         console.log(
@@ -125,21 +185,21 @@ function init() {
 
   // ===== 💡 LIGHTS =====
   {
-    ambientLight = new AmbientLight("white", 0.5);
+    ambientLight = new AmbientLight("white");
     pointLight = new PointLight(
       "#ffffff",
       1.2,
-      100
+      30
     );
     pointLight.position.set(0.15, 1.5, 25);
-    pointLight.castShadow = true;
-    pointLight.shadow.radius = 4;
-    pointLight.shadow.camera.near = 0.5;
-    pointLight.shadow.camera.far = 4000;
-    pointLight.shadow.mapSize.width = 2048;
-    pointLight.shadow.mapSize.height = 2048;
-    scene.add(ambientLight);
-    scene.add(pointLight);
+
+    secondPointLight = new PointLight(
+      "#ffffff",
+      1.2,
+      30
+    );
+    secondPointLight.position.set(0.15, 1.5, -43);
+    scene.add(pointLight, secondPointLight);
   }
 
   // ===== 🎥 CAMERA =====
@@ -150,16 +210,119 @@ function init() {
       0.1,
       100
     );
-    camera.position.set(0, 50, 0);
+    camera.position.set(0, -3, 0);
   }
 
   // ===== 🕹️ CONTROLS =====
   {
-    firstPersonControls = new FirstPersonControls(
+    cameraControls = new PointerLockControls(
       camera,
-      renderer.domElement
+      document.body
     );
 
+    // cameraControls.maxPolarAngle = Math.PI / 2;
+    // cameraControls.minPolarAngle = Math.PI / 3;
+
+    const blocker =
+      document.getElementById("blocker");
+    const instructions = document.getElementById(
+      "instructions"
+    );
+
+    instructions?.addEventListener(
+      "click",
+      function () {
+        cameraControls.lock();
+      }
+    );
+
+    cameraControls.addEventListener(
+      "lock",
+      function () {
+        instructions &&
+          (instructions.style.display = "none");
+        blocker &&
+          (blocker.style.display = "none");
+      }
+    );
+
+    cameraControls.addEventListener(
+      "unlock",
+      function () {
+        blocker &&
+          (blocker.style.display = "block");
+        instructions &&
+          (instructions.style.display = "");
+      }
+    );
+
+    scene.add(cameraControls.getObject());
+
+    const onKeyDown = function (event: any) {
+      switch (event.code) {
+        case "ArrowUp":
+        case "KeyW":
+          moveForward = true;
+          break;
+
+        case "ArrowLeft":
+        case "KeyA":
+          moveLeft = true;
+          break;
+
+        case "ArrowDown":
+        case "KeyS":
+          moveBackward = true;
+          break;
+
+        case "ArrowRight":
+        case "KeyD":
+          moveRight = true;
+          break;
+
+        case "Space":
+          if (canJump === true) velocity.y += 350;
+          canJump = false;
+          break;
+      }
+    };
+
+    const onKeyUp = function (event: any) {
+      switch (event.code) {
+        case "ArrowUp":
+        case "KeyW":
+          moveForward = false;
+          break;
+
+        case "ArrowLeft":
+        case "KeyA":
+          moveLeft = false;
+          break;
+
+        case "ArrowDown":
+        case "KeyS":
+          moveBackward = false;
+          break;
+
+        case "ArrowRight":
+        case "KeyD":
+          moveRight = false;
+          break;
+      }
+    };
+
+    document.addEventListener(
+      "keydown",
+      onKeyDown
+    );
+    document.addEventListener("keyup", onKeyUp);
+
+    raycaster = new Raycaster(
+      new Vector3(),
+      new Vector3(0, -1, 0),
+      0,
+      10
+    );
     // Full screen
     window.addEventListener(
       "dblclick",
@@ -178,7 +341,7 @@ function init() {
     scene.add(axesHelper);
 
     pointLightHelper = new PointLightHelper(
-      pointLight,
+      secondPointLight,
       undefined,
       "orange"
     );
@@ -230,19 +393,38 @@ function init() {
 function animate() {
   requestAnimationFrame(animate);
 
-  stats.update();
+  const time = performance.now();
+  if (cameraControls.isLocked === true) {
+    const delta = (time - prevTime) / 1000;
 
-  if (animation.enabled && animation.play) {
-    animations.rotate(cube, clock, Math.PI / 3);
-    animations.bounce(cube, clock, 1, 0.5, 0.5);
+    velocity.x -= velocity.x * 10.0 * delta;
+    velocity.z -= velocity.z * 10.0 * delta;
+
+    direction.z =
+      Number(moveForward) - Number(moveBackward);
+    direction.x =
+      Number(moveRight) - Number(moveLeft);
+    direction.normalize(); // this ensures consistent movements in all directions
+
+    cameraControls.moveRight(-velocity.x * delta);
+    cameraControls.moveForward(
+      -velocity.z * delta
+    );
+
+    if (moveForward || moveBackward)
+      velocity.z -= direction.z * 100.0 * delta;
+    if (moveLeft || moveRight)
+      velocity.x -= direction.x * 100.0 * delta;
+
+    if (resizeRendererToDisplaySize(renderer)) {
+      const canvas = renderer.domElement;
+      camera.aspect =
+        canvas.clientWidth / canvas.clientHeight;
+      camera.updateProjectionMatrix();
+    }
   }
 
-  if (resizeRendererToDisplaySize(renderer)) {
-    const canvas = renderer.domElement;
-    camera.aspect =
-      canvas.clientWidth / canvas.clientHeight;
-    camera.updateProjectionMatrix();
-  }
-  firstPersonControls.update(0.1);
+  prevTime = time;
+
   renderer.render(scene, camera);
 }
