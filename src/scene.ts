@@ -1,7 +1,6 @@
 import {
   AmbientLight,
   AxesHelper,
-  Clock,
   PerspectiveCamera,
   PointLight,
   PointLightHelper,
@@ -14,7 +13,6 @@ import {
   Vector2,
   Vector3,
   RepeatWrapping,
-  Raycaster,
 } from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import Stats from "three/examples/jsm/libs/stats.module";
