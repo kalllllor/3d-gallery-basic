@@ -1,9 +1,7 @@
-import GUI from "lil-gui";
 import {
   AmbientLight,
   AxesHelper,
   Clock,
-  Mesh,
   PerspectiveCamera,
   PointLight,
   PointLightHelper,
@@ -13,11 +11,9 @@ import {
   MeshBasicMaterial,
   MeshPhysicalMaterial,
   EquirectangularReflectionMapping,
-  sRGBEncoding,
   Vector2,
   Vector3,
   RepeatWrapping,
-  Color,
   Raycaster,
 } from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
@@ -35,7 +31,6 @@ const CANVAS_ID = "scene";
 let canvas: HTMLElement;
 let renderer: WebGLRenderer;
 let scene: Scene;
-
 let ambientLight: AmbientLight;
 let pointLight: PointLight;
 let secondPointLight: PointLight;
@@ -43,13 +38,9 @@ let camera: PerspectiveCamera;
 let cameraControls: PointerLockControls;
 let axesHelper: AxesHelper;
 let pointLightHelper: PointLightHelper;
-let clock: Clock;
 let stats: Stats;
-let gui: GUI;
 let gltfLoader: GLTFLoader;
 let textureLoader: TextureLoader;
-
-let raycaster: Raycaster;
 
 let moveForward: boolean = false;
 let moveBackward: boolean = false;
@@ -108,6 +99,7 @@ function init() {
     gltfLoader = new GLTFLoader();
     textureLoader = new TextureLoader();
 
+    // GLASS
     const hdrEquirect = new RGBELoader().load(
       "/texture/empty_warehouse_01_2k.hdr",
       () => {
@@ -126,20 +118,9 @@ function init() {
       options.normalRepeat
     );
 
-    // MATERIALS
-    const baseWallsTexture = textureLoader.load(
-      "/texture/baked/sciana-infinity-01-biala.png"
-    );
-
-    baseWallsTexture.flipY = false;
-    const baseWallsMaterial =
-      new MeshBasicMaterial({
-        map: baseWallsTexture,
-      });
-
-    const blackWallMaterial =
+    const blackWallsMaterial =
       new MeshPhysicalMaterial({
-        color: 0xffffff,
+        color: 0x1f1f1f,
         metalness: options.metalness,
         roughness: options.roughness,
         transmission: options.transmission,
@@ -160,15 +141,105 @@ function init() {
         ),
       });
 
+    // END OF GLASS
+
+    // BAKED TEXTURES
+
+    // TEXTURE LOADER
+
+    const baseWallsTexture = textureLoader.load(
+      "/texture/baked/sciana-infinity-01-biala.png"
+    );
+    baseWallsTexture.flipY = false;
+
+    const baseWallsReverseTexture =
+      textureLoader.load(
+        "/texture/baked/wall-infinity-grey.001.png"
+      );
+    baseWallsReverseTexture.flipY = false;
+
+    const blueDogBoxTexture = textureLoader.load(
+      "/texture/baked/box-wiekszy-pies.png"
+    );
+    blueDogBoxTexture.flipY = false;
+
+    const pinkDogBoxTexture = textureLoader.load(
+      "/texture/baked/box-mniejszy-pies.png"
+    );
+    pinkDogBoxTexture.flipY = false;
+
+    const baseWallsMaterial =
+      new MeshBasicMaterial({
+        map: baseWallsTexture,
+      });
+
+    const baseWallsReverseMaterial =
+      new MeshBasicMaterial({
+        map: baseWallsReverseTexture,
+      });
+
+    const blueDogBoxMaterial =
+      new MeshBasicMaterial({
+        map: blueDogBoxTexture,
+      });
+
+    const pinkDogBoxMaterial =
+      new MeshBasicMaterial({
+        map: pinkDogBoxTexture,
+      });
+
+    // mapping
+
     gltfLoader.load(
       "/model/galeria_nowa.glb",
       (gltf) => {
-        gltf.scene.traverse((child) => {
-          child.name === "UCX_Cube129" &&
-            (child.material = baseWallsMaterial);
-          child.name === "UCX_Cube125" &&
-            (child.material = blackWallMaterial);
-        });
+        const baseWalls: any =
+          gltf.scene.children.find(
+            (child) =>
+              child.name === "UCX_Cube129"
+          );
+
+        const baseReverseWalls: any =
+          gltf.scene.children.find(
+            (child) =>
+              child.name === "UCX_Cube11001"
+          );
+
+        const blackWalls: any =
+          gltf.scene.children.find(
+            (child) =>
+              child.name === "UCX_Cube125"
+          );
+
+        const blueDogBox: any =
+          gltf.scene.children.find(
+            (child) =>
+              child.name === "box-wiekszy-pies"
+          );
+
+        const pinkDogBox: any =
+          gltf.scene.children.find(
+            (child) =>
+              child.name === "box-mniejszy-pies"
+          );
+
+        baseWalls &&
+          (baseWalls.material =
+            baseWallsMaterial);
+        baseReverseWalls &&
+          (baseReverseWalls.material =
+            baseWallsReverseMaterial);
+        blackWalls &&
+          (blackWalls.material =
+            blackWallsMaterial);
+        blueDogBox &&
+          (blueDogBox.material =
+            blueDogBoxMaterial);
+        pinkDogBox &&
+          (pinkDogBox.material =
+            pinkDogBoxMaterial);
+
+        console.log(blueDogBox);
         scene.add(gltf.scene);
       },
       (xhr) => {
@@ -185,7 +256,7 @@ function init() {
 
   // ===== 💡 LIGHTS =====
   {
-    ambientLight = new AmbientLight("white");
+    ambientLight = new AmbientLight("white", 0.5);
     pointLight = new PointLight(
       "#ffffff",
       1.2,
@@ -199,7 +270,11 @@ function init() {
       30
     );
     secondPointLight.position.set(0.15, 1.5, -43);
-    scene.add(pointLight, secondPointLight);
+    scene.add(
+      ambientLight,
+      pointLight,
+      secondPointLight
+    );
   }
 
   // ===== 🎥 CAMERA =====
@@ -220,8 +295,8 @@ function init() {
       document.body
     );
 
-    // cameraControls.maxPolarAngle = Math.PI / 2;
-    // cameraControls.minPolarAngle = Math.PI / 3;
+    cameraControls.maxPolarAngle = Math.PI / 2;
+    cameraControls.minPolarAngle = Math.PI / 2.5;
 
     const blocker =
       document.getElementById("blocker");
@@ -346,7 +421,6 @@ function init() {
       "orange"
     );
     pointLightHelper.visible = true;
-    scene.add(pointLightHelper);
   }
 
   // ===== 📈 STATS & CLOCK =====
@@ -354,39 +428,6 @@ function init() {
     clock = new Clock();
     stats = Stats();
     document.body.appendChild(stats.dom);
-  }
-
-  // ==== 🐞 DEBUG GUI ====
-  {
-    gui = new GUI({
-      title: "🐞 Debug GUI",
-      width: 300,
-    });
-
-    // persist GUI state in local storage on changes
-    gui.onFinishChange(() => {
-      const guiState = gui.save();
-      localStorage.setItem(
-        "guiState",
-        JSON.stringify(guiState)
-      );
-    });
-
-    // load GUI state if available in local storage
-    const guiState =
-      localStorage.getItem("guiState");
-    if (guiState) gui.load(JSON.parse(guiState));
-
-    // reset GUI state button
-    const resetGui = () => {
-      localStorage.removeItem("guiState");
-      gui.reset();
-    };
-    gui
-      .add({ resetGui }, "resetGui")
-      .name("RESET");
-
-    gui.close();
   }
 }
 
@@ -398,7 +439,26 @@ function animate() {
     const delta = (time - prevTime) / 1000;
 
     velocity.x -= velocity.x * 10.0 * delta;
-    velocity.z -= velocity.z * 10.0 * delta;
+    camera.position.z > -57 &&
+    camera.position.z < 35
+      ? (velocity.z -= velocity.z * 10.0 * delta)
+      : (velocity.z = 0);
+
+    if (camera.position.z < -57) {
+      camera.position.z = -56.99;
+      velocity.z = 0;
+    } else if (camera.position.z > 35) {
+      camera.position.z = 34.99;
+      velocity.z = 0;
+    }
+
+    if (camera.position.x > 6) {
+      camera.position.x = 5.99;
+      velocity.x = 0;
+    } else if (camera.position.x < -5) {
+      camera.position.x = -4.99;
+      velocity.x = 0;
+    }
 
     direction.z =
       Number(moveForward) - Number(moveBackward);
@@ -423,7 +483,7 @@ function animate() {
       camera.updateProjectionMatrix();
     }
   }
-
+  console.log(camera.position);
   prevTime = time;
 
   renderer.render(scene, camera);
