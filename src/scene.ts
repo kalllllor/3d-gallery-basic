@@ -236,8 +236,6 @@ function init() {
         pinkDogBox &&
           (pinkDogBox.material =
             pinkDogBoxMaterial);
-
-        console.log(blueDogBox);
         scene.add(gltf.scene);
       },
       (xhr) => {
@@ -474,7 +472,7 @@ function animate() {
       camera.updateProjectionMatrix();
     }
   }
-  console.log(camera.position);
+
   prevTime = time;
 
   renderer.render(scene, camera);
