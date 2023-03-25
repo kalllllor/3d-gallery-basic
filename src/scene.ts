@@ -12,6 +12,7 @@ import {
   EquirectangularReflectionMapping,
   Vector2,
   Vector3,
+  sRGBEncoding,
   RepeatWrapping,
 } from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
@@ -88,6 +89,7 @@ function init() {
     renderer.setPixelRatio(
       Math.min(window.devicePixelRatio, 2)
     );
+    renderer.outputEncoding = sRGBEncoding;
 
     scene = new Scene();
   }
@@ -150,11 +152,11 @@ function init() {
     );
     baseWallsTexture.flipY = false;
 
-    const baseWallsReverseTexture =
+    const baseWallsReflectionTexture =
       textureLoader.load(
         "/texture/baked/wall-infinity-grey.001.png"
       );
-    baseWallsReverseTexture.flipY = false;
+    baseWallsReflectionTexture.flipY = false;
 
     const blueDogBoxTexture = textureLoader.load(
       "/texture/baked/box-wiekszy-pies.png"
@@ -171,9 +173,9 @@ function init() {
         map: baseWallsTexture,
       });
 
-    const baseWallsReverseMaterial =
+    const baseWallsReflectionMaterial =
       new MeshBasicMaterial({
-        map: baseWallsReverseTexture,
+        map: baseWallsReflectionTexture,
       });
 
     const blueDogBoxMaterial =
@@ -189,18 +191,18 @@ function init() {
     // mapping
 
     gltfLoader.load(
-      "/model/galeria_nowa.glb",
+      "/model/galeria-baked-textures_test2.glb",
       (gltf) => {
         const baseWalls: any =
           gltf.scene.children.find(
             (child) =>
-              child.name === "UCX_Cube129"
+              child.name === "wall-infinity-biala"
           );
 
-        const baseReverseWalls: any =
+        const baseWallsReflection: any =
           gltf.scene.children.find(
             (child) =>
-              child.name === "UCX_Cube11001"
+              child.name === "wall-infinit-grey"
           );
 
         const blackWalls: any =
@@ -224,9 +226,11 @@ function init() {
         baseWalls &&
           (baseWalls.material =
             baseWallsMaterial);
-        baseReverseWalls &&
-          (baseReverseWalls.material =
-            baseWallsReverseMaterial);
+
+        baseWallsReflection &&
+          (baseWallsReflection.material =
+            baseWallsReflectionMaterial);
+
         blackWalls &&
           (blackWalls.material =
             blackWallsMaterial);
@@ -236,6 +240,7 @@ function init() {
         pinkDogBox &&
           (pinkDogBox.material =
             pinkDogBoxMaterial);
+
         scene.add(gltf.scene);
       },
       (xhr) => {
@@ -281,7 +286,7 @@ function init() {
       0.1,
       100
     );
-    camera.position.set(0, -3, 0);
+    camera.position.set(0, -1, 0);
   }
 
   // ===== 🕹️ CONTROLS =====
@@ -428,13 +433,10 @@ function animate() {
     const delta = (time - prevTime) / 1000;
 
     velocity.x -= velocity.x * 10.0 * delta;
-    camera.position.z > -57 &&
-    camera.position.z < 35
-      ? (velocity.z -= velocity.z * 10.0 * delta)
-      : (velocity.z = 0);
+    velocity.z -= velocity.z * 10.0 * delta;
 
-    if (camera.position.z < -57) {
-      camera.position.z = -56.99;
+    if (camera.position.z < -54) {
+      camera.position.z = -53.99;
       velocity.z = 0;
     } else if (camera.position.z > 35) {
       camera.position.z = 34.99;
