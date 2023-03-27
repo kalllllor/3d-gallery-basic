@@ -7,11 +7,7 @@
       name="viewport"
       content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
     />
-    <link
-      type="text/css"
-      rel="stylesheet"
-      href="main.css"
-    />
+
     <style>
       #blocker {
         position: absolute;
@@ -45,10 +41,22 @@
         </p>
       </div>
     </div>
+    <div id="painting-desc" style="display: none">
+      <div id="painting-desc_content">
+        <h1 id="content_title"></h1>
+        <h3 id="content_artist"></h3>
+        <p id="content_description"></p>
+        <img id="content_image" />
+      </div>
+      <button id="exit-button">exit</button>
+    </div>
     <canvas id="scene"></canvas>
     <script
       type="module"
       src="/src/scene.ts"
     ></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inconsolata:wght@300;500&display=swap");
+    </style>
   </body>
 </html>

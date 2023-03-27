@@ -19,11 +19,13 @@ body {
   margin: 0;
   display: flex;
   place-items: center;
+  position: relative;
 }
 
 body,
 html {
   height: 100%;
+  font-family: "Inconsolata", monospace;
 }
 
 canvas {
@@ -37,4 +39,57 @@ canvas {
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+}
+
+#painting-desc {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+}
+
+#exit-button {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+}
+
+#painting-desc_content {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0px auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-size: 14px;
+}
+
+#content_image {
+  width: 512px;
+  height: auto;
+}
+
+#content_title {
+  margin-bottom: 0px;
+}
+
+#content_description {
+  text-align: justify;
+}
+
+#exit-button {
+  cursor: pointer;
+  font-size: 24px;
+  background-color: transparent;
+  border-width: 0;
+  font-family: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  padding: 0;
 }

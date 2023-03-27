@@ -14,10 +14,11 @@ import {
   Vector3,
   sRGBEncoding,
   RepeatWrapping,
+  Raycaster,
 } from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import Stats from "three/examples/jsm/libs/stats.module";
-import { toggleFullScreen } from "./helpers/fullscreen";
+
 import { resizeRendererToDisplaySize } from "./helpers/responsiveness";
 
 import "./style.css";
@@ -40,6 +41,9 @@ let pointLightHelper: PointLightHelper;
 let stats: Stats;
 let gltfLoader: GLTFLoader;
 let textureLoader: TextureLoader;
+let raycaster: Raycaster;
+let paintings: any;
+let activePainting: any;
 
 let moveForward: boolean = false;
 let moveBackward: boolean = false;
@@ -191,7 +195,7 @@ function init() {
     // mapping
 
     gltfLoader.load(
-      "/model/galeria-baked-textures_test2.glb",
+      "/model/galeria-baked-textures_new.glb",
       (gltf) => {
         const baseWalls: any =
           gltf.scene.children.find(
@@ -241,6 +245,10 @@ function init() {
           (pinkDogBox.material =
             pinkDogBoxMaterial);
 
+        paintings = gltf.scene.children.filter(
+          (el) => el.name.includes("obraz")
+        );
+
         scene.add(gltf.scene);
       },
       (xhr) => {
@@ -286,7 +294,69 @@ function init() {
       0.1,
       100
     );
-    camera.position.set(0, -1, 0);
+    camera.position.set(0, -3, 0);
+  }
+
+  // ===== RAYCASTER =====
+  {
+    raycaster = new Raycaster();
+
+    const descriptionRef =
+      document.getElementById("painting-desc");
+
+    const paintingTitleRef =
+      document.getElementById("content_title");
+
+    const paintingArtistRef =
+      document.getElementById("content_artist");
+
+    const paintingDescriptionRef =
+      document.getElementById(
+        "content_description"
+      );
+
+    const paintingImageRef = <HTMLImageElement>(
+      document.getElementById("content_image")
+    );
+
+    const exitBtn = document.getElementById(
+      "exit-button"
+    );
+
+    exitBtn &&
+      (exitBtn.onclick = function () {
+        activePainting = null;
+        descriptionRef &&
+          (descriptionRef.style.display = "none");
+        cameraControls.lock();
+      });
+
+    const onClick = () => {
+      if (!activePainting) return;
+
+      paintingTitleRef &&
+        (paintingTitleRef.innerHTML =
+          "Czaeny kwadrat na białym tle");
+
+      paintingArtistRef &&
+        (paintingArtistRef.innerHTML =
+          "Kazimierz Malewicz");
+
+      paintingDescriptionRef &&
+        (paintingDescriptionRef.innerHTML =
+          "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut quis mattis augue. Vivamus vel tellus porta sapien porttitor posuere. Aliquam non efficitur purus. Suspendisse vel enim id enim vulputate pharetra. Aliquam eu mauris mi. Sed interdum odio leo, sagittis elementum augue ullamcorper et. Curabitur luctus, turpis vitae tristique pharetra, ante tortor scelerisque ex, id lobortis turpis lectus ac est. Aliquam turpis lorem, congue sit amet hendrerit ut, posuere vel massa. Donec tincidunt lorem quis libero dapibus aliquam. In tempor tristique aliquam. Donec ullamcorper consequat sollicitudin.");
+
+      paintingImageRef &&
+        (paintingImageRef.src =
+          "/test/obraz.jpg");
+
+      descriptionRef &&
+        activePainting &&
+        ((descriptionRef.style.display = "block"),
+        cameraControls.unlock());
+    };
+
+    document.addEventListener("click", onClick);
   }
 
   // ===== 🕹️ CONTROLS =====
@@ -299,13 +369,15 @@ function init() {
     cameraControls.maxPolarAngle = Math.PI / 2;
     cameraControls.minPolarAngle = Math.PI / 2.5;
 
-    const blocker =
+    const blockerRef =
       document.getElementById("blocker");
-    const instructions = document.getElementById(
-      "instructions"
+    const instructionsRef =
+      document.getElementById("instructions");
+    const paintingRef = document.getElementById(
+      "painting-desc"
     );
 
-    instructions?.addEventListener(
+    instructionsRef?.addEventListener(
       "click",
       function () {
         cameraControls.lock();
@@ -315,20 +387,17 @@ function init() {
     cameraControls.addEventListener(
       "lock",
       function () {
-        instructions &&
-          (instructions.style.display = "none");
-        blocker &&
-          (blocker.style.display = "none");
+        blockerRef &&
+          (blockerRef.style.display = "none");
       }
     );
 
     cameraControls.addEventListener(
       "unlock",
       function () {
-        blocker &&
-          (blocker.style.display = "block");
-        instructions &&
-          (instructions.style.display = "");
+        blockerRef &&
+          paintingRef?.style.display === "none" &&
+          (blockerRef.style.display = "block");
       }
     );
 
@@ -392,16 +461,6 @@ function init() {
       onKeyDown
     );
     document.addEventListener("keyup", onKeyUp);
-
-    // Full screen
-    window.addEventListener(
-      "dblclick",
-      (event) => {
-        if (event.target === canvas) {
-          toggleFullScreen(canvas);
-        }
-      }
-    );
   }
 
   // ===== 🪄 HELPERS =====
@@ -429,17 +488,18 @@ function animate() {
   requestAnimationFrame(animate);
 
   const time = performance.now();
+
   if (cameraControls.isLocked === true) {
     const delta = (time - prevTime) / 1000;
 
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
 
-    if (camera.position.z < -54) {
-      camera.position.z = -53.99;
+    if (camera.position.z < -26.5) {
+      camera.position.z = -26.49;
       velocity.z = 0;
-    } else if (camera.position.z > 35) {
-      camera.position.z = 34.99;
+    } else if (camera.position.z > 62.5) {
+      camera.position.z = 62.49;
       velocity.z = 0;
     }
 
@@ -473,6 +533,23 @@ function animate() {
         canvas.clientWidth / canvas.clientHeight;
       camera.updateProjectionMatrix();
     }
+  }
+
+  raycaster.setFromCamera(new Vector2(), camera);
+  if (paintings) {
+    activePainting = null;
+    const intersects =
+      raycaster.intersectObjects(paintings);
+
+    for (let i = 0; i < paintings.length; i++) {
+      paintings[i].material.color.set(0xffffff);
+    }
+
+    intersects.length &&
+      (intersects[0].object.material.color.set(
+        0xff0000
+      ),
+      (activePainting = intersects[0].object));
   }
 
   prevTime = time;
