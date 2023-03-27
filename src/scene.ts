@@ -15,6 +15,7 @@ import {
   sRGBEncoding,
   RepeatWrapping,
   Raycaster,
+  Mesh,
 } from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import Stats from "three/examples/jsm/libs/stats.module";
@@ -538,7 +539,7 @@ function animate() {
   raycaster.setFromCamera(new Vector2(), camera);
   if (paintings) {
     activePainting = null;
-    const intersects =
+    const intersects: any =
       raycaster.intersectObjects(paintings);
 
     for (let i = 0; i < paintings.length; i++) {
