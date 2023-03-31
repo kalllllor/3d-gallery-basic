@@ -20,6 +20,8 @@ import { PointerLockControls } from "three/examples/jsm/controls/PointerLockCont
 
 import Stats from "three/examples/jsm/libs/stats.module";
 
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+
 import { resizeRendererToDisplaySize } from "./helpers/responsiveness";
 
 import "./style.css";
@@ -43,6 +45,7 @@ let axesHelper: AxesHelper;
 let pointLightHelper: PointLightHelper;
 let stats: Stats;
 let gltfLoader: GLTFLoader;
+let dracoLoader: DRACOLoader;
 let textureLoader: TextureLoader;
 let raycaster: Raycaster;
 let paintings: any;
@@ -111,15 +114,20 @@ function init() {
   {
     gltfLoader = new GLTFLoader();
     textureLoader = new TextureLoader();
+    dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath(
+      "/examples/jsm/libs/draco"
+    );
+    gltfLoader.setDRACOLoader(dracoLoader);
 
     // GLASS
-    // const hdrEquirect = new RGBELoader().load(
-    //   "/texture/empty_warehouse_01_2k.hdr",
-    //   () => {
-    //     hdrEquirect.mapping =
-    //       EquirectangularReflectionMapping;
-    //   }
-    // );
+    const hdrEquirect = new RGBELoader().load(
+      "/texture/empty_warehouse_01_2k.hdr",
+      () => {
+        hdrEquirect.mapping =
+          EquirectangularReflectionMapping;
+      }
+    );
 
     const normalMapTexture = textureLoader.load(
       "/texture/normal.jpg"
@@ -279,8 +287,12 @@ function init() {
           );
         });
 
-        for (const painting of paintings) {
-          console.log(painting);
+        const outlineMat = new MeshBasicMaterial({
+          color: 0xffffff,
+        });
+
+        for (const outline of paintingsOutlines) {
+          outline.material = outlineMat;
         }
 
         scene.add(gltf.scene);
@@ -302,28 +314,28 @@ function init() {
     ambientLight = new AmbientLight("white", 0.5);
     pointLight = new PointLight(
       "#ffffff",
-      1.2,
+      0.5,
       30
     );
     pointLight.position.set(0.15, 3, -17);
 
     secondPointLight = new PointLight(
       "#ffffff",
-      1.2,
+      0.5,
       30
     );
     secondPointLight.position.set(0, 3, 6);
 
     thirdPointLight = new PointLight(
       "#ffffff",
-      1.2,
+      0.5,
       30
     );
     thirdPointLight.position.set(0, 3, 29);
 
     fourthPointLight = new PointLight(
       "#ffffff",
-      1.2,
+      0.5,
       30
     );
     fourthPointLight.position.set(0, 3, 55);
@@ -387,19 +399,19 @@ function init() {
 
       paintingTitleRef &&
         (paintingTitleRef.innerHTML =
-          "Czaeny kwadrat na białym tle");
+          "Painting name");
 
       paintingArtistRef &&
-        (paintingArtistRef.innerHTML =
-          "Kazimierz Malewicz");
+        (paintingArtistRef.innerHTML = "Author");
 
       paintingDescriptionRef &&
         (paintingDescriptionRef.innerHTML =
           "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut quis mattis augue. Vivamus vel tellus porta sapien porttitor posuere. Aliquam non efficitur purus. Suspendisse vel enim id enim vulputate pharetra. Aliquam eu mauris mi. Sed interdum odio leo, sagittis elementum augue ullamcorper et. Curabitur luctus, turpis vitae tristique pharetra, ante tortor scelerisque ex, id lobortis turpis lectus ac est. Aliquam turpis lorem, congue sit amet hendrerit ut, posuere vel massa. Donec tincidunt lorem quis libero dapibus aliquam. In tempor tristique aliquam. Donec ullamcorper consequat sollicitudin.");
 
       paintingImageRef &&
-        (paintingImageRef.src =
-          "/test/obraz.jpg");
+        (paintingImageRef.src = `/texture/paintings/${activePainting.name}.jpg`);
+
+      console.log(activePainting);
 
       descriptionRef &&
         activePainting &&

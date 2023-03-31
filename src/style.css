@@ -70,8 +70,8 @@ h1 {
 }
 
 #content_image {
-  width: 512px;
-  height: auto;
+  height: 512px;
+  width: auto;
 }
 
 #content_title {
