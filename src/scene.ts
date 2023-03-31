@@ -17,6 +17,7 @@ import {
   Raycaster,
 } from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
+
 import Stats from "three/examples/jsm/libs/stats.module";
 
 import { resizeRendererToDisplaySize } from "./helpers/responsiveness";
@@ -34,6 +35,8 @@ let scene: Scene;
 let ambientLight: AmbientLight;
 let pointLight: PointLight;
 let secondPointLight: PointLight;
+let thirdPointLight: PointLight;
+let fourthPointLight: PointLight;
 let camera: PerspectiveCamera;
 let cameraControls: PointerLockControls;
 let axesHelper: AxesHelper;
@@ -43,6 +46,7 @@ let gltfLoader: GLTFLoader;
 let textureLoader: TextureLoader;
 let raycaster: Raycaster;
 let paintings: any;
+let paintingsOutlines: any;
 let activePainting: any;
 
 let moveForward: boolean = false;
@@ -54,6 +58,11 @@ let canJump: boolean = false;
 let prevTime = performance.now();
 const velocity: Vector3 = new Vector3();
 const direction: Vector3 = new Vector3();
+
+const sizes: any = {
+  width: window.innerWidth,
+  height: window.innerHeight,
+};
 
 const options = {
   enableSwoopingCamera: false,
@@ -104,13 +113,13 @@ function init() {
     textureLoader = new TextureLoader();
 
     // GLASS
-    const hdrEquirect = new RGBELoader().load(
-      "/texture/empty_warehouse_01_2k.hdr",
-      () => {
-        hdrEquirect.mapping =
-          EquirectangularReflectionMapping;
-      }
-    );
+    // const hdrEquirect = new RGBELoader().load(
+    //   "/texture/empty_warehouse_01_2k.hdr",
+    //   () => {
+    //     hdrEquirect.mapping =
+    //       EquirectangularReflectionMapping;
+    //   }
+    // );
 
     const normalMapTexture = textureLoader.load(
       "/texture/normal.jpg"
@@ -130,7 +139,7 @@ function init() {
         transmission: options.transmission,
         ior: options.ior,
         reflectivity: options.reflectivity,
-        envMap: hdrEquirect,
+        // envMap: hdrEquirect,
         envMapIntensity: options.envMapIntensity,
         clearcoat: options.clearcoat,
         clearcoatRoughness:
@@ -195,8 +204,16 @@ function init() {
     // mapping
 
     gltfLoader.load(
-      "/model/galeria-baked-textures_new.glb",
+      "/model/galeria-baked-textures.glb",
       (gltf) => {
+        // ==== outlines ====
+
+        gltf.scene.traverse((child) => {
+          if (child.name.includes("outline")) {
+            child.visible = false;
+          }
+        });
+
         const baseWalls: any =
           gltf.scene.children.find(
             (child) =>
@@ -249,6 +266,23 @@ function init() {
           (el) => el.name.includes("obraz")
         );
 
+        paintingsOutlines =
+          gltf.scene.children.filter((el) =>
+            el.name.includes("outline")
+          );
+
+        paintings = paintings.filter(function (
+          el: any
+        ) {
+          return (
+            paintingsOutlines.indexOf(el) < 0
+          );
+        });
+
+        for (const painting of paintings) {
+          console.log(painting);
+        }
+
         scene.add(gltf.scene);
       },
       (xhr) => {
@@ -271,18 +305,35 @@ function init() {
       1.2,
       30
     );
-    pointLight.position.set(0.15, 1.5, 25);
+    pointLight.position.set(0.15, 3, -17);
 
     secondPointLight = new PointLight(
       "#ffffff",
       1.2,
       30
     );
-    secondPointLight.position.set(0.15, 1.5, -43);
+    secondPointLight.position.set(0, 3, 6);
+
+    thirdPointLight = new PointLight(
+      "#ffffff",
+      1.2,
+      30
+    );
+    thirdPointLight.position.set(0, 3, 29);
+
+    fourthPointLight = new PointLight(
+      "#ffffff",
+      1.2,
+      30
+    );
+    fourthPointLight.position.set(0, 3, 55);
+
     scene.add(
       ambientLight,
       pointLight,
-      secondPointLight
+      secondPointLight,
+      thirdPointLight,
+      fourthPointLight
     );
   }
 
@@ -470,7 +521,7 @@ function init() {
     scene.add(axesHelper);
 
     pointLightHelper = new PointLightHelper(
-      secondPointLight,
+      fourthPointLight,
       undefined,
       "orange"
     );
@@ -486,7 +537,6 @@ function init() {
 
 function animate() {
   requestAnimationFrame(animate);
-
   const time = performance.now();
 
   if (cameraControls.isLocked === true) {
@@ -528,6 +578,8 @@ function animate() {
       velocity.x -= direction.x * 100.0 * delta;
 
     if (resizeRendererToDisplaySize(renderer)) {
+      sizes.width = window.innerWidth;
+      sizes.height = window.innerHeight;
       const canvas = renderer.domElement;
       camera.aspect =
         canvas.clientWidth / canvas.clientHeight;
@@ -536,20 +588,38 @@ function animate() {
   }
 
   raycaster.setFromCamera(new Vector2(), camera);
+
   if (paintings) {
     activePainting = null;
     const intersects: any =
       raycaster.intersectObjects(paintings);
 
-    for (let i = 0; i < paintings.length; i++) {
-      paintings[i].material.color.set(0xffffff);
+    for (
+      let i = 0;
+      i < paintingsOutlines.length;
+      i++
+    ) {
+      paintingsOutlines[i].visible = false;
     }
 
-    intersects.length &&
-      (intersects[0].object.material.color.set(
-        0xff0000
-      ),
-      (activePainting = intersects[0].object));
+    if (intersects.length) {
+      activePainting = intersects[0].object;
+
+      const activeOutline =
+        paintingsOutlines.find(
+          (el: any) =>
+            el.name ==
+            activePainting.name + "_outline"
+        );
+
+      if (
+        activePainting.position.distanceTo(
+          camera.position
+        ) < 10
+      ) {
+        activeOutline.visible = true;
+      }
+    }
   }
 
   prevTime = time;
