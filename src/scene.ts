@@ -303,13 +303,12 @@ function init() {
       (xhr) => {
         const LoadingBarRef =
           document.getElementById("loading");
-        console.log(xhr);
         LoadingBarRef &&
           (LoadingBarRef.innerHTML = `Loading ${Math.floor(
-            (xhr.loaded / xhr.total) * 100
+            (xhr.loaded / 13277244) * 100
           )}%`);
 
-        if (xhr.loaded / xhr.total > 0.99) {
+        if (xhr.loaded / 13277244 > 0.99) {
           LoadingBarRef &&
             (LoadingBarRef.style.display =
               "none");
