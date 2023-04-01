@@ -18,8 +18,6 @@ import {
 } from "three";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 
-import Stats from "three/examples/jsm/libs/stats.module";
-
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 
 import { resizeRendererToDisplaySize } from "./helpers/responsiveness";
@@ -43,7 +41,6 @@ let camera: PerspectiveCamera;
 let cameraControls: PointerLockControls;
 let axesHelper: AxesHelper;
 let pointLightHelper: PointLightHelper;
-let stats: Stats;
 let gltfLoader: GLTFLoader;
 let dracoLoader: DRACOLoader;
 let textureLoader: TextureLoader;
@@ -303,12 +300,19 @@ function init() {
 
         scene.add(gltf.scene);
       },
-      () => {
-        // for loading progress animation
-        // console.log(
-        //   (xhr.loaded / xhr.total) * 100 +
-        //     "% loaded"
-        // );
+      (xhr) => {
+        const LoadingBarRef =
+          document.getElementById("loading");
+        LoadingBarRef &&
+          (LoadingBarRef.innerHTML = `Loading ${Math.floor(
+            (xhr.loaded / xhr.total) * 100
+          )}%`);
+
+        if (xhr.loaded / xhr.total > 0.99) {
+          LoadingBarRef &&
+            (LoadingBarRef.style.display =
+              "none");
+        }
       },
       () => {
         console.log("error");
@@ -550,12 +554,6 @@ function init() {
       "orange"
     );
     pointLightHelper.visible = true;
-  }
-
-  // ===== 📈 STATS & CLOCK =====
-  {
-    stats = Stats();
-    document.body.appendChild(stats.dom);
   }
 }
 
