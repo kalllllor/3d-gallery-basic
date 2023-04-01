@@ -303,11 +303,7 @@ function init() {
       (xhr) => {
         const LoadingBarRef =
           document.getElementById("loading");
-        console.log(
-          LoadingBarRef,
-          xhr.loaded,
-          xhr.total
-        );
+        console.log(xhr);
         LoadingBarRef &&
           (LoadingBarRef.innerHTML = `Loading ${Math.floor(
             (xhr.loaded / xhr.total) * 100
