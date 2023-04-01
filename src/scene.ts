@@ -301,6 +301,7 @@ function init() {
         scene.add(gltf.scene);
       },
       (xhr) => {
+        console.log("test");
         const LoadingBarRef =
           document.getElementById("loading");
         LoadingBarRef &&
