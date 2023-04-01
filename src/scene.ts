@@ -51,7 +51,7 @@ let raycaster: Raycaster;
 let paintings: any;
 let paintingsOutlines: any;
 let activePainting: any;
-
+let balloonBoxes: any = [];
 let moveForward: boolean = false;
 let moveBackward: boolean = false;
 let moveLeft: boolean = false;
@@ -220,6 +220,10 @@ function init() {
           if (child.name.includes("outline")) {
             child.visible = false;
           }
+
+          if (child.name.includes("box")) {
+            balloonBoxes.push(child);
+          }
         });
 
         const baseWalls: any =
@@ -243,13 +247,13 @@ function init() {
         const blueDogBox: any =
           gltf.scene.children.find(
             (child) =>
-              child.name === "box-wiekszy-pies"
+              child.name === "blue-dog_box"
           );
 
         const pinkDogBox: any =
           gltf.scene.children.find(
             (child) =>
-              child.name === "box-mniejszy-pies"
+              child.name === "pink-dog_box"
           );
 
         baseWalls &&
@@ -271,7 +275,9 @@ function init() {
             pinkDogBoxMaterial);
 
         paintings = gltf.scene.children.filter(
-          (el) => el.name.includes("obraz")
+          (el) =>
+            el.name.includes("obraz") ||
+            el.name.includes("dog")
         );
 
         paintingsOutlines =
@@ -297,11 +303,12 @@ function init() {
 
         scene.add(gltf.scene);
       },
-      (xhr) => {
-        console.log(
-          (xhr.loaded / xhr.total) * 100 +
-            "% loaded"
-        );
+      () => {
+        // for loading progress animation
+        // console.log(
+        //   (xhr.loaded / xhr.total) * 100 +
+        //     "% loaded"
+        // );
       },
       () => {
         console.log("error");
@@ -399,7 +406,7 @@ function init() {
 
       paintingTitleRef &&
         (paintingTitleRef.innerHTML =
-          "Painting name");
+          "Artwork name");
 
       paintingArtistRef &&
         (paintingArtistRef.innerHTML = "Author");
@@ -410,8 +417,6 @@ function init() {
 
       paintingImageRef &&
         (paintingImageRef.src = `/texture/paintings/${activePainting.name}.jpg`);
-
-      console.log(activePainting);
 
       descriptionRef &&
         activePainting &&
@@ -614,22 +619,42 @@ function animate() {
       paintingsOutlines[i].visible = false;
     }
 
+    for (
+      let i = 0;
+      i < balloonBoxes.length;
+      i++
+    ) {
+      balloonBoxes[i].material.color.set(
+        0xffffff
+      );
+    }
+
     if (intersects.length) {
       activePainting = intersects[0].object;
+      if (activePainting.name.includes("obraz")) {
+        const activeOutline =
+          paintingsOutlines.find(
+            (el: any) =>
+              el.name ==
+              activePainting.name + "_outline"
+          );
 
-      const activeOutline =
-        paintingsOutlines.find(
+        if (
+          activePainting.position.distanceTo(
+            camera.position
+          ) < 10
+        ) {
+          activeOutline.visible = true;
+        }
+      } else if (
+        activePainting.name.includes("dog")
+      ) {
+        const activeBox = balloonBoxes.find(
           (el: any) =>
-            el.name ==
-            activePainting.name + "_outline"
+            el.name.includes(activePainting.name)
         );
 
-      if (
-        activePainting.position.distanceTo(
-          camera.position
-        ) < 10
-      ) {
-        activeOutline.visible = true;
+        activeBox.material.color.set(0x8c8c8c);
       }
     }
   }
