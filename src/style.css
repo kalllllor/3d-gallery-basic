@@ -93,3 +93,10 @@ h1 {
   line-height: inherit;
   padding: 0;
 }
+
+#instructions a {
+  text-decoration: none;
+  font-size: 32px;
+  margin-top: 64px;
+  color: white;
+}

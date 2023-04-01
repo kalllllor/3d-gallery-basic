@@ -389,6 +389,9 @@ function init() {
       document.getElementById("content_image")
     );
 
+    const blockerRef =
+      document.getElementById("blocker");
+
     const exitBtn = document.getElementById(
       "exit-button"
     );
@@ -402,7 +405,11 @@ function init() {
       });
 
     const onClick = () => {
-      if (!activePainting) return;
+      if (
+        !activePainting ||
+        blockerRef?.style.display == "block"
+      )
+        return;
 
       paintingTitleRef &&
         (paintingTitleRef.innerHTML =
