@@ -301,9 +301,9 @@ function init() {
         scene.add(gltf.scene);
       },
       (xhr) => {
-        console.log("test");
         const LoadingBarRef =
           document.getElementById("loading");
+        console.log(LoadingBarRef);
         LoadingBarRef &&
           (LoadingBarRef.innerHTML = `Loading ${Math.floor(
             (xhr.loaded / xhr.total) * 100
