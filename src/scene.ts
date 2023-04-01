@@ -307,7 +307,7 @@ function init() {
           (LoadingBarRef.innerHTML = `Loading ${Math.floor(
             (xhr.loaded / 13277244) * 100
           )}%`);
-
+        console.log(xhr.loaded / 13277244);
         if (xhr.loaded / 13277244 > 0.99) {
           LoadingBarRef &&
             (LoadingBarRef.style.display =
